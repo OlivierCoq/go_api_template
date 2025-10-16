@@ -13,6 +13,7 @@ import (
 
 	"github.com/OlivierCoq/go_api_project/internal/api"   // Importing the api package to use its handlers
 	"github.com/OlivierCoq/go_api_project/internal/store" // Importing the store package for database access
+	"github.com/OlivierCoq/go_api_project/migrations"
 )
 
 type Application struct {
@@ -47,6 +48,12 @@ func NewApplication() (*Application, error) {
 	pgDB, err := store.Open()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to the database: %w", err)
+	}
+
+	err = store.MigrateFS(pgDB, migrations.FS, ".")
+	if err != nil {
+		// panic and crash the app if migration fails:
+		panic(err)
 	}
 
 	// Create a new instance of Application struct, which includes the logger, handlers, etc.:
