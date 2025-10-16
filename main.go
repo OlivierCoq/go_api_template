@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/OlivierCoq/go_api_project/internal/app"
+	"github.com/OlivierCoq/go_api_project/internal/routes"
 )
 
 /*
@@ -44,7 +45,15 @@ func main() {
 			- This allows us to pass the function name without parentheses, which would call the function immediately)
 	*/
 	// Here, we are passing the HealthCheck function as a value to the HandleFunc method (Methods are defined below)
-	http.HandleFunc("/health", HealthCheck)
+	// http.HandleFunc("/health", HealthCheck)
+
+	// Using chi router instead of default http package router ^
+	r := routes.SetupRoutes(app)
+
+	// Use the chi router as the main handler for incoming requests
+	http.Handle("/", r)
+
+	// Note: In a real-world application, you would likely have more complex routing and middleware setup here.
 
 	// Set up server:
 
@@ -69,21 +78,21 @@ func main() {
 // Methods
 
 // Health Check Handler
-func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	/*
-		- Purpose: To verify that the server is running and responsive.
-		- Called by client (UI, some frontent)
-		- needs 2 arguments: ResponseWriter and Request
-		- ResponseWriter: used to send a response back to the client
-		- Request: contains all the information about the incoming HTTP request. This is a pointer because it can be large and we want to avoid copying it. We
-		also need it to persist and modify it, especially when dealing with middleware or request body.
-		- In a real-world scenario, you might want to include more detailed health information,
-		  such as database connectivity, external service status, etc.
-		- In this example, we simply write "OK" to the response with a 200 status code.
-	*/
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "Status is available. A okay! 🟢\n")
-}
+// func HealthCheck(w http.ResponseWriter, r *http.Request) {
+// 	/*
+// 		- Purpose: To verify that the server is running and responsive.
+// 		- Called by client (UI, some frontent)
+// 		- needs 2 arguments: ResponseWriter and Request
+// 		- ResponseWriter: used to send a response back to the client
+// 		- Request: contains all the information about the incoming HTTP request. This is a pointer because it can be large and we want to avoid copying it. We
+// 		also need it to persist and modify it, especially when dealing with middleware or request body.
+// 		- In a real-world scenario, you might want to include more detailed health information,
+// 		  such as database connectivity, external service status, etc.
+// 		- In this example, we simply write "OK" to the response with a 200 status code.
+// 	*/
+// 	w.WriteHeader(http.StatusOK)
+// 	fmt.Fprint(w, "Status is available. A okay! 🟢\n")
+// }
 
 /*
 

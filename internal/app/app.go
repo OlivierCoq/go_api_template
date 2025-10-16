@@ -9,12 +9,14 @@ import (
 	"log"      // for logging messages
 	"net/http" // for building HTTP servers and clients
 	"os"       // for logging to standard output (console)
-	// for time-related functions
+
+	"github.com/OlivierCoq/go_api_project/internal/api" // Importing the api package to use its handlers
 )
 
 type Application struct {
 	// Logger is for logging messages to the console or a file
-	Logger *log.Logger
+	Logger         *log.Logger
+	WorkoutHandler *api.WorkoutHandler
 }
 
 func NewApplication() (*Application, error) {
@@ -33,9 +35,15 @@ func NewApplication() (*Application, error) {
 		2024/10/05 14:23:45 Application started. Werk it! 🚀
 	*/
 
-	// Create a new instance of Application struct, which includes the logger:
+	// Stores
+
+	// Handlers
+	workoutHandler := api.NewWorkoutHandler()
+
+	// Create a new instance of Application struct, which includes the logger, handlers, etc.:
 	app := &Application{ // &Application is pointer to Application struct
-		Logger: logger,
+		Logger:         logger,
+		WorkoutHandler: workoutHandler,
 	}
 	return app, nil // nil is for the error argument, meaning no error occurred :)
 }
