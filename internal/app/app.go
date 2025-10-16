@@ -50,6 +50,8 @@ func NewApplication() (*Application, error) {
 		return nil, fmt.Errorf("failed to connect to the database: %w", err)
 	}
 
+	// Run database migrations using the embedded filesystem:
+	// the "." means the current directory, which is where the migration files are located in the embedded FS
 	err = store.MigrateFS(pgDB, migrations.FS, ".")
 	if err != nil {
 		// panic and crash the app if migration fails:
