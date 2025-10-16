@@ -34,6 +34,10 @@ func main() {
 		panic(err)
 	}
 
+	// Ensure the database connection is closed when the application exits
+	// In a real-world application, you might want to handle this more gracefully
+	defer app.DB.Close()
+
 	app.Logger.Println("Application started. Werk it! 🚀")
 
 	// Set up routes and handlers

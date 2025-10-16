@@ -5,18 +5,21 @@ package app
 // interface = handler
 
 import (
+	"database/sql"
 	"fmt"      // for formatted I/O operations
 	"log"      // for logging messages
 	"net/http" // for building HTTP servers and clients
 	"os"       // for logging to standard output (console)
 
-	"github.com/OlivierCoq/go_api_project/internal/api" // Importing the api package to use its handlers
+	"github.com/OlivierCoq/go_api_project/internal/api"   // Importing the api package to use its handlers
+	"github.com/OlivierCoq/go_api_project/internal/store" // Importing the store package for database access
 )
 
 type Application struct {
 	// Logger is for logging messages to the console or a file
 	Logger         *log.Logger
 	WorkoutHandler *api.WorkoutHandler
+	DB             *sql.DB // Add the database connection field
 }
 
 func NewApplication() (*Application, error) {
@@ -40,10 +43,17 @@ func NewApplication() (*Application, error) {
 	// Handlers
 	workoutHandler := api.NewWorkoutHandler()
 
+	// Database connection
+	pgDB, err := store.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to the database: %w", err)
+	}
+
 	// Create a new instance of Application struct, which includes the logger, handlers, etc.:
 	app := &Application{ // &Application is pointer to Application struct
 		Logger:         logger,
 		WorkoutHandler: workoutHandler,
+		DB:             pgDB, // Add the database connection to the Application struct
 	}
 	return app, nil // nil is for the error argument, meaning no error occurred :)
 }
