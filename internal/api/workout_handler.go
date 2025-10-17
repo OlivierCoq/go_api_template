@@ -69,3 +69,37 @@ func (wh *WorkoutHandler) HandleCreateWorkout(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(createdWorkout)
 }
+
+func (wh *WorkoutHandler) HandleUpdateWorkout(w http.ResponseWriter, r *http.Request) {
+	// Implementation for updating a workout
+	paramsWorkoutID := chi.URLParam(r, "id")
+	if paramsWorkoutID == "" {
+		http.Error(w, "Workout ID is required", http.StatusBadRequest)
+		return
+	}
+
+	workoutID, err := strconv.ParseInt(paramsWorkoutID, 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	var workout store.Workout
+	err = json.NewDecoder(r.Body).Decode(&workout)
+	if err != nil {
+		http.Error(w, "Invalid request payload", http.StatusInternalServerError)
+		return
+	}
+
+	workout.ID = int(workoutID)
+
+	err = wh.workoutStore.UpdateWorkout(&workout)
+	if err != nil {
+		http.Error(w, "Failed to update workout", http.StatusInternalServerError)
+		return
+	}
+
+	// Respond with entire updated workout as JSON to the frontend:
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(workout)
+}

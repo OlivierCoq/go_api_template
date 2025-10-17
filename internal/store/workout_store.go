@@ -1,6 +1,9 @@
 package store
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+)
 
 type Workout struct {
 	ID              int            `json:"id"`
@@ -40,6 +43,7 @@ func NewPostgresWorkoutStore(db *sql.DB) *PostgresWorkoutStore {
 type WorkoutStore interface {
 	CreateWorkout(*Workout) (*Workout, error)
 	GetWorkoutByID(id int64) (*Workout, error)
+	UpdateWorkout(*Workout) error
 }
 
 func (pg *PostgresWorkoutStore) CreateWorkout(workout *Workout) (*Workout, error) {
@@ -102,6 +106,9 @@ func (pg *PostgresWorkoutStore) GetWorkoutByID(id int64) (*Workout, error) {
 			  FROM workouts
 			  WHERE id = $1`
 
+	/*
+		- When scanning db query results, the Scan method must receive pointers to the destination variables.
+	*/
 	err := pg.db.QueryRow(query, id).Scan(&workout.ID, &workout.UserID, &workout.Title, &workout.Description, &workout.DurationMinutes, &workout.CaloriesBurned)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -147,4 +154,49 @@ func (pg *PostgresWorkoutStore) GetWorkoutByID(id int64) (*Workout, error) {
 
 	return workout, nil
 	// Implementation for retrieving a workout by ID from PostgreSQL
+}
+
+func (pg *PostgresWorkoutStore) UpdateWorkout(workout *Workout) error {
+
+	// transaction
+	tx, err := pg.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := `UPDATE workouts
+			  SET user_id = $1, title = $2, description = $3, duration_minutes = $4, calories_burned = $5
+			  WHERE id = $6`
+
+	res, err := tx.Exec(query, workout.UserID, workout.Title, workout.Description, workout.DurationMinutes, workout.CaloriesBurned, workout.ID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no workout found with id %d", workout.ID)
+	}
+
+	// Updating entries (moved before commit)
+	for _, entry := range workout.Entries {
+		entryQuery := `UPDATE workout_entries
+					   SET exercise_name = $1, sets = $2, reps = $3, duration_seconds = $4, weight = $5, notes = $6, order_index = $7
+					   WHERE id = $8 AND workout_id = $9`
+		_, err = tx.Exec(entryQuery, entry.ExerciseName, entry.Sets, entry.Reps, entry.DurationSeconds, entry.Weight, entry.Notes, entry.OrderIndex, entry.ID, workout.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
