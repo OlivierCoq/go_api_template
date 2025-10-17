@@ -203,7 +203,7 @@ func (pg *PostgresWorkoutStore) UpdateWorkout(workout *Workout) error {
 
 		entryQuery := `INSERT INTO workout_entries (user_id, workout_id, exercise_name, sets, reps, duration_seconds, weight, notes, order_index)
 					   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-		insertResult, err := tx.Exec(
+		_, err := tx.Exec(
 			entryQuery,
 			workout.UserID,
 			workout.ID,

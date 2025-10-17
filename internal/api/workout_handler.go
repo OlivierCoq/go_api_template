@@ -92,6 +92,14 @@ func (wh *WorkoutHandler) HandleUpdateWorkout(w http.ResponseWriter, r *http.Req
 	}
 
 	workout.ID = int(workoutID)
+	// Fetch existing workout from DB to ensure it exists
+	_, err = wh.workoutStore.GetWorkoutByID(workoutID)
+	if err != nil {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+
+	// Update workout in the store
 
 	err = wh.workoutStore.UpdateWorkout(&workout)
 	if err != nil {
@@ -99,7 +107,44 @@ func (wh *WorkoutHandler) HandleUpdateWorkout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// We use json tags here for parsing purposes. We use pointers to differentiate between zero values and missing fields.
+	var updateWorkoutRequest struct {
+		Title           *string               `json:"title"`
+		Description     *string               `json:"description"`
+		DurationMinutes *int                  `json:"duration"`
+		CaloriesBurned  *int                  `json:"calories_burned"`
+		Entries         *[]store.WorkoutEntry `json:"entries"`
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&updateWorkoutRequest)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	/*
+			- What's happening here is that we're checking if each field in the updateWorkoutRequest struct is non-nil (meaning it was provided in the request).
+		- If it's non-nil, we dereference the pointer to get the actual value and update the corresponding field in the workout struct.
+		- This way, only the fields that were provided in the request will be updated, while others will remain unchanged.
+	*/
+	if updateWorkoutRequest.Title != nil {
+		workout.Title = *updateWorkoutRequest.Title
+	}
+	if updateWorkoutRequest.Description != nil {
+		workout.Description = *updateWorkoutRequest.Description
+	}
+	if updateWorkoutRequest.DurationMinutes != nil {
+		workout.DurationMinutes = *updateWorkoutRequest.DurationMinutes
+	}
+	if updateWorkoutRequest.CaloriesBurned != nil {
+		workout.CaloriesBurned = *updateWorkoutRequest.CaloriesBurned
+	}
+	if updateWorkoutRequest.Entries != nil {
+		workout.Entries = *updateWorkoutRequest.Entries
+	}
+
 	// Respond with entire updated workout as JSON to the frontend:
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(workout)
 }
