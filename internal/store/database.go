@@ -3,7 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"io/fs"
+	"io/fs" // for working with the embedded filesystem
 
 	"github.com/pressly/goose/v3" // for database migrations
 

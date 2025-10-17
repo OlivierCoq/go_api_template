@@ -39,16 +39,17 @@ func NewApplication() (*Application, error) {
 		2024/10/05 14:23:45 Application started. Werk it! 🚀
 	*/
 
-	// Stores
-
-	// Handlers
-	workoutHandler := api.NewWorkoutHandler()
-
 	// Database connection
 	pgDB, err := store.Open()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to the database: %w", err)
 	}
+
+	// Stores
+	workoutStore := store.NewPostgresWorkoutStore(pgDB)
+
+	// Handlers
+	workoutHandler := api.NewWorkoutHandler(workoutStore)
 
 	// Run database migrations using the embedded filesystem:
 	// the "." means the current directory, which is where the migration files are located in the embedded FS

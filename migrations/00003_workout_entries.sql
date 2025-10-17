@@ -7,10 +7,10 @@ CREATE TABLE IF NOT EXISTS workout_entries (
     exercise_name VARCHAR(255) NOT NULL,
     sets INT NOT NULL,
     reps INT NOT NULL,
+    duration_seconds INT,
     weight DECIMAL(5,2),
     notes TEXT,
-    order_index INT NOT NULL,
-    duration_seconds INT,
+    order_index INT NOT NULL, 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT valid_workout_entry CHECK (
       (reps IS NOT NULL OR duration_seconds IS NOT NULL) AND
