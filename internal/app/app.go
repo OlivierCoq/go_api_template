@@ -49,7 +49,7 @@ func NewApplication() (*Application, error) {
 	workoutStore := store.NewPostgresWorkoutStore(pgDB)
 
 	// Handlers
-	workoutHandler := api.NewWorkoutHandler(workoutStore)
+	workoutHandler := api.NewWorkoutHandler(workoutStore, logger)
 
 	// Run database migrations using the embedded filesystem:
 	// the "." means the current directory, which is where the migration files are located in the embedded FS

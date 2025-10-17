@@ -2,22 +2,26 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/OlivierCoq/go_api_project/internal/store"
+	"github.com/OlivierCoq/go_api_project/internal/utils"
 	"github.com/go-chi/chi/v5"
 )
 
 type WorkoutHandler struct {
 	// Add fields as necessary, e.g., a reference to the application or database
 	workoutStore store.WorkoutStore // Interface to interact with workout data. This promotes db decoupling and easier testing.
+	logger       *log.Logger
 }
 
 // NewWorkoutHandler creates a new instance of WorkoutHandler
-func NewWorkoutHandler(workoutStore store.WorkoutStore) *WorkoutHandler {
+func NewWorkoutHandler(workoutStore store.WorkoutStore, logger *log.Logger) *WorkoutHandler {
 	return &WorkoutHandler{
 		workoutStore: workoutStore,
+		logger:       logger,
 	}
 }
 
@@ -25,17 +29,13 @@ func NewWorkoutHandler(workoutStore store.WorkoutStore) *WorkoutHandler {
 
 func (wh *WorkoutHandler) HandleGetWorkoutByID(w http.ResponseWriter, r *http.Request) {
 	// Implementation for getting a workout by ID
-	paramsWorkoutID := chi.URLParam(r, "id")
-	if paramsWorkoutID == "" {
-		http.Error(w, "Workout ID is required", http.StatusBadRequest)
+	workoutID, err := utils.ReadIDParam(r, "id")
+	if err != nil {
+		wh.logger.Printf("Error getWorkoutByID : %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "Invalid workout ID"})
 		return
 	}
 
-	workoutID, err := strconv.ParseInt(paramsWorkoutID, 10, 64)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
 	// fmt.Fprintf(w, "Workout ID: %d\n", workoutID)
 	workout, err := wh.workoutStore.GetWorkoutByID(workoutID)
 	if err != nil {
@@ -84,26 +84,10 @@ func (wh *WorkoutHandler) HandleUpdateWorkout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	var workout store.Workout
-	err = json.NewDecoder(r.Body).Decode(&workout)
-	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusInternalServerError)
-		return
-	}
-
-	workout.ID = int(workoutID)
-	// Fetch existing workout from DB to ensure it exists
-	_, err = wh.workoutStore.GetWorkoutByID(workoutID)
+	// Fetch existing workout from DB to ensure it exists and get current data
+	workout, err := wh.workoutStore.GetWorkoutByID(workoutID)
 	if err != nil {
 		http.Error(w, "Workout not found", http.StatusNotFound)
-		return
-	}
-
-	// Update workout in the store
-
-	err = wh.workoutStore.UpdateWorkout(&workout)
-	if err != nil {
-		http.Error(w, "Failed to update workout", http.StatusInternalServerError)
 		return
 	}
 
@@ -141,6 +125,13 @@ func (wh *WorkoutHandler) HandleUpdateWorkout(w http.ResponseWriter, r *http.Req
 	}
 	if updateWorkoutRequest.Entries != nil {
 		workout.Entries = *updateWorkoutRequest.Entries
+	}
+
+	// Update workout in the store
+	err = wh.workoutStore.UpdateWorkout(workout)
+	if err != nil {
+		http.Error(w, "Failed to update workout", http.StatusInternalServerError)
+		return
 	}
 
 	// Respond with entire updated workout as JSON to the frontend:
