@@ -182,21 +182,54 @@ func (pg *PostgresWorkoutStore) UpdateWorkout(workout *Workout) error {
 		return fmt.Errorf("no workout found with id %d", workout.ID)
 	}
 
-	// Updating entries (moved before commit)
-	for _, entry := range workout.Entries {
-		entryQuery := `UPDATE workout_entries
-					   SET exercise_name = $1, sets = $2, reps = $3, duration_seconds = $4, weight = $5, notes = $6, order_index = $7
-					   WHERE id = $8 AND workout_id = $9`
-		_, err = tx.Exec(entryQuery, entry.ExerciseName, entry.Sets, entry.Reps, entry.DurationSeconds, entry.Weight, entry.Notes, entry.OrderIndex, entry.ID, workout.ID)
-		if err != nil {
-			return err
-		}
-	}
+	// Debug: Log workout details
+	fmt.Printf("Updating workout ID: %d, UserID: %d, Entries count: %d\n", workout.ID, workout.UserID, len(workout.Entries))
 
-	err = tx.Commit()
+	// First, delete all existing entries for this workout
+	deleteQuery := `DELETE FROM workout_entries WHERE workout_id = $1`
+	deleteResult, err := tx.Exec(deleteQuery, workout.ID)
 	if err != nil {
+		fmt.Printf("Error deleting entries: %v\n", err)
 		return err
 	}
 
+	deletedRows, _ := deleteResult.RowsAffected()
+	fmt.Printf("Deleted %d existing entries for workout %d\n", deletedRows, workout.ID)
+
+	// Then insert all entries as new ones
+	for i, entry := range workout.Entries {
+		// fmt.Printf("Inserting entry %d: ExerciseName=%s, Sets=%d, Reps=%v, Duration=%v, Weight=%v\n",
+		// 	i, entry.ExerciseName, entry.Sets, entry.Reps, entry.DurationSeconds, entry.Weight)
+
+		entryQuery := `INSERT INTO workout_entries (user_id, workout_id, exercise_name, sets, reps, duration_seconds, weight, notes, order_index)
+					   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		insertResult, err := tx.Exec(
+			entryQuery,
+			workout.UserID,
+			workout.ID,
+			entry.ExerciseName,
+			entry.Sets,
+			entry.Reps,
+			entry.DurationSeconds,
+			entry.Weight,
+			entry.Notes,
+			entry.OrderIndex)
+		if err != nil {
+			fmt.Printf("Error inserting entry %d: %v\n", i, err)
+			return err
+		}
+
+		// insertedRows, _ := insertResult.RowsAffected()
+		// fmt.Printf("Inserted entry %d: %d rows affected\n", i, insertedRows)
+	}
+
+	// fmt.Printf("Attempting to commit transaction...\n")
+	err = tx.Commit()
+	if err != nil {
+		fmt.Printf("Error committing transaction: %v\n", err)
+		return err
+	}
+
+	// fmt.Printf("Transaction committed successfully!\n")
 	return nil
 }
