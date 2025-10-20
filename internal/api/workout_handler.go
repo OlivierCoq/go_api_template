@@ -137,14 +137,13 @@ func (wh *WorkoutHandler) HandleUpdateWorkout(w http.ResponseWriter, r *http.Req
 	// Update workout in the store
 	err = wh.workoutStore.UpdateWorkout(workout)
 	if err != nil {
-		http.Error(w, "Failed to update workout", http.StatusInternalServerError)
+		wh.logger.Printf("Failed to update workout: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "Failed to update workout"})
 		return
 	}
 
 	// Respond with entire updated workout as JSON to the frontend:
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(workout)
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"workout": workout}) // 200
 }
 
 // Delete
