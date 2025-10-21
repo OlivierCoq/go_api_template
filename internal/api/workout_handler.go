@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/OlivierCoq/go_api_project/internal/store"
-	"github.com/OlivierCoq/go_api_project/internal/utils"
+	"github.com/OlivierCoq/go_api_template/internal/store"
+	"github.com/OlivierCoq/go_api_template/internal/utils"
 )
 
 type WorkoutHandler struct {

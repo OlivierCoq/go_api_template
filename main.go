@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/OlivierCoq/go_api_project/internal/app"
-	"github.com/OlivierCoq/go_api_project/internal/routes"
+	"github.com/OlivierCoq/go_api_template/internal/app"
+	"github.com/OlivierCoq/go_api_template/internal/routes"
 )
 
 /*

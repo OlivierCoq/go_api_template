@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/OlivierCoq/go_api_project/internal/store"
-	"github.com/OlivierCoq/go_api_project/internal/tokens"
-	"github.com/OlivierCoq/go_api_project/internal/utils"
+	"github.com/OlivierCoq/go_api_template/internal/store"
+	"github.com/OlivierCoq/go_api_template/internal/tokens"
+	"github.com/OlivierCoq/go_api_template/internal/utils"
 )
 
 type TokenHandler struct {

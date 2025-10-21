@@ -11,9 +11,9 @@ import (
 	"net/http" // for building HTTP servers and clients
 	"os"       // for logging to standard output (console)
 
-	"github.com/OlivierCoq/go_api_project/internal/api"   // Importing the api package to use its handlers
-	"github.com/OlivierCoq/go_api_project/internal/store" // Importing the store package for database access
-	"github.com/OlivierCoq/go_api_project/migrations"
+	"github.com/OlivierCoq/go_api_template/internal/api"   // Importing the api package to use its handlers
+	"github.com/OlivierCoq/go_api_template/internal/store" // Importing the store package for database access
+	"github.com/OlivierCoq/go_api_template/migrations"
 )
 
 type Application struct {

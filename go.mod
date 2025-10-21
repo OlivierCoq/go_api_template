@@ -1,4 +1,4 @@
-module github.com/OlivierCoq/go_api_project
+module github.com/OlivierCoq/go_api_template
 
 go 1.25.2
 
