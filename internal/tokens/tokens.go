@@ -17,7 +17,7 @@ type Token struct {
 	Hash      []byte    `json:"-"`      // The hashed version of the token for secure storage
 	UserID    int       `json:"-"`      // ID of the user the token is associated with
 	Expiry    time.Time `json:"expiry"` // Unix timestamp
-	Scope     string    `json:"-"`      // e.g., "authentication", "password_reset"
+	Scope     string    `json:"-"`      // e.g., "authentication", "password_reset". Different levels of access, etc
 }
 
 func GenerateToken(userID int, ttl time.Duration, scope string) (*Token, error) {
@@ -38,8 +38,9 @@ func GenerateToken(userID int, ttl time.Duration, scope string) (*Token, error) 
 		return nil, err
 	}
 
+	// Encode to base32 to get a user-friendly string
 	token.Plaintext = base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(emptyBytes)
-	hash := sha256.Sum256([]byte(token.Plaintext))
+	hash := sha256.Sum256([]byte(token.Plaintext)) // Hash the plaintext token using SHA-256
 	token.Hash = hash[:]
 
 	return token, nil

@@ -33,6 +33,7 @@ func (p *password) Set(plainText string) error {
 	return nil
 }
 
+// For verifying if the provided plaintext password matches the stored hash. Authentication and login purposes.
 func (p *password) Matches(plainText string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword(p.hash, []byte(plainText))
 	if err != nil {
