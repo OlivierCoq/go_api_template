@@ -1,6 +1,7 @@
 package store
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"time"
@@ -59,6 +60,14 @@ type User struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+// AnonymousUser is a placeholder for unauthenticated users.
+var AnonymousUser = &User{}
+
+// IsAnonymous checks if the user is anonymous.
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
+}
+
 type PostgresUserStore struct {
 	db *sql.DB
 }
@@ -72,24 +81,12 @@ type UserStore interface {
 	CreateUser(*User) (*User, error)
 	GetUserByUsername(username string) (*User, error)
 	UpdateUser(*User) error
+	GetUserToken(scope, tokenPlaintext string) (*User, error)
 }
 
-// CRUD operations:
+// CRU operations:
 
 // Create user:
-// func (s *PostgresUserStore) CreateUser(user *User) error {
-// 	query := `
-// 		INSERT INTO users (username, email, password_hash, bio, created_at, updated_at)
-// 		VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-// 		RETURNING id, created_at, updated_at
-// 	`
-// 	err := s.db.QueryRow(query, user.Username, user.Email, user.PasswordHash.hash, user.Bio).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
 func (s *PostgresUserStore) CreateUser(user *User) (*User, error) {
 
 	query := `
@@ -153,4 +150,38 @@ func (s *PostgresUserStore) UpdateUser(user *User) error {
 	}
 
 	return nil
+}
+
+func (s *PostgresUserStore) GetUserToken(scope, plaintextPassword string) (*User, error) {
+	// Implementation for retrieving a user by token from PostgreSQL
+
+	tokenHash := sha256.Sum256([]byte(plaintextPassword))
+
+	// INNER JOIN tokens t ON u.id = t.user_id (Not sure if order matters here)
+	query := `
+		SELECT u.id, u.username, u.email, u.password_hash, u.bio, u.created_at, u.updated_at
+		FROM users u
+		INNER JOIN tokens t ON t.user_id = u.id
+		WHERE t.hash = $1 AND t.scope = $2 AND t.expiry > $3
+	`
+	// the t.expiry is to ensure the token is still valid (not expired)
+	user := &User{
+		PasswordHash: password{},
+	}
+	err := s.db.QueryRow(query, tokenHash[:], scope, time.Now()).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.PasswordHash.hash,
+		&user.Bio,
+		&user.CreatedAt,
+		&user.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil // No user found
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
