@@ -1,7 +1,8 @@
 package utils
 
 import (
-	"encoding/json" //Marhsaling and Unmarshaling JSON come from this package
+	// Marshaling and Unmarshaling JSON
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"

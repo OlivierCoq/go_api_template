@@ -20,6 +20,7 @@ type Application struct {
 	// Logger is for logging messages to the console or a file
 	Logger         *log.Logger
 	WorkoutHandler *api.WorkoutHandler
+	UserHandler    *api.UserHandler
 	DB             *sql.DB // Add the database connection field
 }
 
@@ -47,9 +48,11 @@ func NewApplication() (*Application, error) {
 
 	// Stores
 	workoutStore := store.NewPostgresWorkoutStore(pgDB)
+	userStore := store.NewPostgresUserStore(pgDB)
 
 	// Handlers
 	workoutHandler := api.NewWorkoutHandler(workoutStore, logger)
+	userHandler := api.NewUserHandler(userStore, logger)
 
 	// Run database migrations using the embedded filesystem:
 	// the "." means the current directory, which is where the migration files are located in the embedded FS
@@ -64,6 +67,7 @@ func NewApplication() (*Application, error) {
 		Logger:         logger,
 		WorkoutHandler: workoutHandler,
 		DB:             pgDB, // Add the database connection to the Application struct
+		UserHandler:    userHandler,
 	}
 	return app, nil // nil is for the error argument, meaning no error occurred :)
 }
