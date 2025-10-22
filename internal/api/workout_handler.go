@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/OlivierCoq/go_api_template/internal/middleware"
 	"github.com/OlivierCoq/go_api_template/internal/store"
 	"github.com/OlivierCoq/go_api_template/internal/utils"
 )
@@ -37,6 +38,15 @@ func (wh *WorkoutHandler) HandleCreateWorkout(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Invalid request payload", http.StatusInternalServerError)
 		return
 	}
+
+	// Ensure that this is being created by an authenticated user
+	currentUser := middleware.GetUser(r)
+	if currentUser.IsAnonymous() {
+		http.Error(w, "Authentication required to create workout", http.StatusUnauthorized)
+		return
+	}
+
+	workout.UserID = currentUser.ID // Associate the workout with the current user's ID
 
 	// Feedback from the store
 	createdWorkout, err := wh.workoutStore.CreateWorkout(&workout)
@@ -132,6 +142,26 @@ func (wh *WorkoutHandler) HandleUpdateWorkout(w http.ResponseWriter, r *http.Req
 	}
 	if updateWorkoutRequest.Entries != nil {
 		workout.Entries = *updateWorkoutRequest.Entries
+	}
+
+	// Associate the workout with the current user's ID
+	currentUser := middleware.GetUser(r)
+	if currentUser.IsAnonymous() {
+		http.Error(w, "Authentication required to update workout", http.StatusUnauthorized)
+		return
+	}
+	workout.UserID = currentUser.ID
+
+	// Ensure that the current user is the owner of the workout
+	workoutOwner, err := wh.workoutStore.GetWorkoutByID(paramsWorkoutID)
+	if err != nil {
+		wh.logger.Printf("Error retrieving workout owner: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "Failed to retrieve workout owner"})
+		return
+	}
+	if workoutOwner.UserID != currentUser.ID {
+		http.Error(w, "You do not have permission to update this workout", http.StatusForbidden)
+		return
 	}
 
 	// Update workout in the store

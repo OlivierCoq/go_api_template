@@ -11,9 +11,10 @@ import (
 	"net/http" // for building HTTP servers and clients
 	"os"       // for logging to standard output (console)
 
-	"github.com/OlivierCoq/go_api_template/internal/api"   // Importing the api package to use its handlers
-	"github.com/OlivierCoq/go_api_template/internal/store" // Importing the store package for database access
-	"github.com/OlivierCoq/go_api_template/migrations"
+	"github.com/OlivierCoq/go_api_template/internal/api"        // Importing the api package to use its handlers
+	"github.com/OlivierCoq/go_api_template/internal/middleware" // Importing the middleware package for request handling
+	"github.com/OlivierCoq/go_api_template/internal/store"      // Importing the store package for database access
+	"github.com/OlivierCoq/go_api_template/migrations"          // Importing the migrations package for database migrations
 )
 
 type Application struct {
@@ -23,6 +24,7 @@ type Application struct {
 	UserHandler    *api.UserHandler
 	TokenHandler   *api.TokenHandler
 	DB             *sql.DB // Add the database connection field
+	Middleware     *middleware.UserMiddleware
 }
 
 func NewApplication() (*Application, error) {
@@ -57,6 +59,12 @@ func NewApplication() (*Application, error) {
 	userHandler := api.NewUserHandler(userStore, logger)
 	tokenHandler := api.NewTokenHandler(tokenStore, userStore, logger)
 
+	// Middleware
+	middlewareHandler := &middleware.UserMiddleware{
+		UserStore: userStore,
+	}
+	userMiddleware := middlewareHandler
+
 	// Run database migrations using the embedded filesystem:
 	// the "." means the current directory, which is where the migration files are located in the embedded FS
 	err = store.MigrateFS(pgDB, migrations.FS, ".")
@@ -72,6 +80,7 @@ func NewApplication() (*Application, error) {
 		DB:             pgDB, // Add the database connection to the Application struct
 		TokenHandler:   tokenHandler,
 		UserHandler:    userHandler,
+		Middleware:     userMiddleware,
 	}
 	return app, nil // nil is for the error argument, meaning no error occurred :)
 }

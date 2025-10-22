@@ -41,9 +41,11 @@ func GetUser(r *http.Request) *store.User {
 	return user
 }
 
-func (um *UserMiddleware) Middleware(next http.Handler) http.Handler {
+func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		// Always add the Vary header when dealing with authentication:
+		// The Vary header indicates to caching proxies that the response may vary based on the value of the Authorization header.
 		w.Header().Add("Vary", "Authorization") // Caching proxies should consider the Authorization header when deciding whether to serve a cached response.
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -53,11 +55,41 @@ func (um *UserMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
+		// Check the format of the Authorization header:
 		headerParts := strings.Split(authHeader, " ") // Bearer tokenstring
 		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
 			// Invalid auth header format, so we set the user as anonymous and proceed to the next handler:
 			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error": "invalid authorization header format"})
 			return
 		}
+
+		token := headerParts[1]
+		user, err := um.UserStore.GetUserToken("authentication", token)
+		if err != nil {
+			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "failed to retrieve user"})
+			return
+		}
+		if user == nil {
+			// No user found for the provided token, so we set the user as anonymous and proceed to the next handler:
+			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error": "invalid or expired token"})
+			return
+		}
+
+		// User found, set it in the context and proceed to the next handler:
+		r = SetUser(r, user)
+		next.ServeHTTP(w, r)
+
+	})
+}
+
+// Handler function from routes to protect routes that require authentication:
+func (um *UserMiddleware) RequireUser(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := GetUser(r)
+		if user.IsAnonymous() {
+			utils.WriteJSON(w, http.StatusUnauthorized, utils.Envelope{"error": "you must be authenticated to access this resource"})
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
