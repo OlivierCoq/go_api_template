@@ -20,6 +20,7 @@ type TokenStore interface {
 	Insert(token *tokens.Token) error
 	CreateNewToken(userID int, ttl time.Duration, scope string) (*tokens.Token, error)
 	DeleteAllTokensForUser(scope string, userID int) error
+	RevokeToken(tokenHash string) error
 }
 
 // Insert a new token into the database
@@ -48,5 +49,16 @@ func (t *PostgresTokenStore) DeleteAllTokensForUser(scope string, userID int) er
 		WHERE user_id = $1 AND scope = $2
 	`
 	_, err := t.db.Exec(query, userID, scope)
+	return err
+}
+
+// Logging out:
+// RevokeToken
+func (t *PostgresTokenStore) RevokeToken(tokenHash string) error {
+	query := `
+		DELETE FROM tokens
+		WHERE hash = $1
+	`
+	_, err := t.db.Exec(query, tokenHash)
 	return err
 }

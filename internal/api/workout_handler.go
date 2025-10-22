@@ -208,7 +208,8 @@ func (wh *WorkoutHandler) HandleDeleteWorkout(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if workoutOwner != currentUser.ID {
-		http.Error(w, "You do not have permission to delete this workout", http.StatusForbidden)
+		wh.logger.Printf("User %d attempted to delete workout %d owned by user %d", currentUser.ID, workoutID, workoutOwner)
+		utils.WriteJSON(w, http.StatusForbidden, utils.Envelope{"error": "You do not have permission to delete this workout"})
 		return
 	}
 	// Ensure that the workout exists before attempting deletion

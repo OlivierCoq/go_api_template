@@ -32,6 +32,17 @@ func SetUser(r *http.Request, user *store.User) *http.Request {
 	return r.WithContext(ctx)
 }
 
+// Log off user:
+func (um *UserMiddleware) Logout(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Always add the Vary header when dealing with authentication:
+		w.Header().Add("Vary", "Authorization") // Caching proxies should consider the Authorization header when deciding whether to serve a cached response.
+		// Remove the user from the context by setting it to anonymous user:
+		r = SetUser(r, store.AnonymousUser)
+		next.ServeHTTP(w, r)
+	})
+}
+
 func GetUser(r *http.Request) *store.User {
 	// So now, we can retrieve the user from the context:
 	user, ok := r.Context().Value(userContextKey).(*store.User)
