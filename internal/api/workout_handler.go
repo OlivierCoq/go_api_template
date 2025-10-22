@@ -153,13 +153,13 @@ func (wh *WorkoutHandler) HandleUpdateWorkout(w http.ResponseWriter, r *http.Req
 	workout.UserID = currentUser.ID
 
 	// Ensure that the current user is the owner of the workout
-	workoutOwner, err := wh.workoutStore.GetWorkoutByID(paramsWorkoutID)
+	workoutOwner, err := wh.workoutStore.GetWorkoutOwner(paramsWorkoutID)
 	if err != nil {
 		wh.logger.Printf("Error retrieving workout owner: %v", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "Failed to retrieve workout owner"})
 		return
 	}
-	if workoutOwner.UserID != currentUser.ID {
+	if workoutOwner != currentUser.ID {
 		http.Error(w, "You do not have permission to update this workout", http.StatusForbidden)
 		return
 	}
@@ -191,6 +191,31 @@ func (wh *WorkoutHandler) HandleDeleteWorkout(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		wh.logger.Printf("Workout not found: %v", err)
 		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error": "Workout not found"}) // 404
+		return
+	}
+
+	// Ensure that the current user is the owner of the workout before deletion:
+	currentUser := middleware.GetUser(r)
+	if currentUser.IsAnonymous() {
+		http.Error(w, "Authentication required to delete workout", http.StatusUnauthorized)
+		return
+	}
+
+	workoutOwner, err := wh.workoutStore.GetWorkoutOwner(workoutID)
+	if err != nil {
+		wh.logger.Printf("Error retrieving workout owner: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "Failed to retrieve workout owner"})
+		return
+	}
+	if workoutOwner != currentUser.ID {
+		http.Error(w, "You do not have permission to delete this workout", http.StatusForbidden)
+		return
+	}
+	// Ensure that the workout exists before attempting deletion
+	_, err = wh.workoutStore.GetWorkoutByID(workoutID)
+	if err != nil {
+		wh.logger.Printf("Error retrieving workout: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "Failed to retrieve workout"})
 		return
 	}
 
