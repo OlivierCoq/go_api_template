@@ -35,6 +35,10 @@ type WorkoutStore interface {
 }
 ```
 
+### Migrations
+
+This contains your SQL files that initiate your postgres database tables. Each file is encapsulated in goose syntax, which starts at runtime and safely executes any database migrations necessary. 
+
 ### The API 
 
 The API layer consists of handlers, which call the *interface* found in the previously mentioned database layer. The handlers accept http requests, parse said requests, and send the data to and from the database layer. 
@@ -97,7 +101,13 @@ The middleware folder includes functions that handle authorization levels, logge
 
 - Grab user (authenticated or anonymous) and set into http.Request context using the `SetUser` function. This alters every single request to contain a user in its context, and for the entire application to panic and shut down if any request does not contain a user. This stops any bad actors from accessing any guarded endpoints.
 - Using the user previously set in the `setUser` function, any other function will first check each request and grab the user from context using the `getUser` function.
-- Authenticate. When a user logs in, they hit the `tokens/authentication` route, which checks for their credentials, runs several security checks, and returns with a token which is attached to the request headers. This is then attached to any routes that require a user via `RequireUser`. This then wraps around any protected routes. (Redirection is handled via the front end)
+- Authenticate. When a user logs in, they hit the `tokens/authentication` route, which checks for their credentials, runs several security checks, generates and returns with a token (from the `tokens/tokens.go` file) which is attached to the request headers. This is then attached to any routes that require a user via `RequireUser`. This then wraps around any protected routes. (Redirection is handled via the front end)
+
+
+### Utils
+
+Contains recurring helper functions usued throughout the app, that format JSON objects returned to the client, as well as parsing through URL parameters for each request. 
+
 
 ### The Application
 
@@ -136,3 +146,5 @@ docker compose up --build
 ```
 go run main.go
 ```
+
+Upon running the `main.go`, goose checks for any changes and executes if necessary. Your app should be g2g at this point.
