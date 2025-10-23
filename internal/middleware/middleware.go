@@ -43,6 +43,7 @@ func (um *UserMiddleware) Logout(next http.Handler) http.Handler {
 	})
 }
 
+// get user from context:
 func GetUser(r *http.Request) *store.User {
 	// So now, we can retrieve the user from the context:
 	user, ok := r.Context().Value(userContextKey).(*store.User)
@@ -52,6 +53,7 @@ func GetUser(r *http.Request) *store.User {
 	return user
 }
 
+// Middleware function to authenticate user based on Bearer token in Authorization header:
 func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
